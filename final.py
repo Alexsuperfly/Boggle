@@ -7,9 +7,14 @@ import enchant
 import random
 from copy import copy
 from PyQt5 import QtWidgets, QtCore, QtGui
-import pickle
 import time
 import sys
+import shelve
+
+try:
+	import cPickle as cPickle
+except:
+	import pickle
 
 #create the dictionary to search for valid words
 global d
@@ -214,6 +219,7 @@ class WordTable(QtWidgets.QTextEdit):
 		self.displayedwords = []
 		if words != None:
 			for each in words:
+				self.displayedwords.append(each)
 				self.addWord(each)
 
 	def addWord(self, word):
@@ -221,9 +227,6 @@ class WordTable(QtWidgets.QTextEdit):
 		self.parent.board.check_word(word.upper())
 		self.append(word)
 
-	def displaywords(self, words):
-		for each in words:
-			self.append(each)
 
 class WordEntry(QtWidgets.QLineEdit):
 	def __init__(self, parent):
@@ -238,7 +241,7 @@ class WordEntry(QtWidgets.QLineEdit):
 
 
 class Timer(QtWidgets.QLCDNumber):
-	def __init__(self, parent, starttime = 5):
+	def __init__(self, parent, starttime = 10):
 		QtWidgets.QLCDNumber.__init__(self, parent)
 		self.starttime = starttime
 		self.parent = parent
@@ -267,16 +270,17 @@ class Timer(QtWidgets.QLCDNumber):
 class BoggleGame(QtWidgets.QWidget):
 	def __init__(self, parent):
 		QtWidgets.QWidget.__init__(self, parent)
+		self.grid = QtWidgets.QGridLayout()
+		self.setLayout(self.grid)
 		
 	def NewGame(self):
+		self.clearlayout(self.grid)
+
 		self.score = 0
 		self.board = DiceBoard(self)
 		self.wordtable = WordTable(self)
 		self.timer = Timer(self)
 		self.wordentry = WordEntry(self)
-
-		self.grid = QtWidgets.QGridLayout()
-		self.setLayout(self.grid)
 
 		self.grid.addWidget(self.board,1,1,10,5)
 		self.grid.addWidget(self.wordtable,1,6,10,4)
@@ -284,12 +288,44 @@ class BoggleGame(QtWidgets.QWidget):
 		self.grid.addWidget(self.timer,11,9,1,1)
 
 	def SaveGame(self):
-		print("save game")
-		return
+		self.savedata = []
+		self.savedata.append(self.score)
+		self.savedata.append(self.board.mydice)
+		self.savedata.append(self.wordtable.displayedwords)
+		self.savedata.append(self.timer.currenttime)
+		timeobj = QtCore.QDateTime.currentDateTime()
+		timekey = timeobj.toString()
+		s = shelve.open("game_save_data.db")
+		s[str(timekey)] = self.savedata
+		s.close()
 
 	def LoadGame(self):
-		print("load game")
-		return
+		self.clearlayout(self.grid)
+		s = shelve.open("game_save_data.db")
+		availkeys = s.keys()
+
+		selectedsave = 
+
+		self.score = s[selectedsave][0]
+		self.board = DiceBoard(self,s[selectedsave][1])
+		self.wordtable = WordTable(self. s[selectedsave][2])
+		self.timer = Timer(self, s[selectedsave][3])
+		self.wordentry = WordEntry(self)
+
+		self.grid.addWidget(self.board,1,1,10,5)
+		self.grid.addWidget(self.wordtable,1,6,10,4)
+		self.grid.addWidget(self.wordentry,11,1,1,8)
+		self.grid.addWidget(self.timer,11,9,1,1)
+
+	def clearlayout(self, layout):
+		for i in reversed(range(layout.count())): 
+			widgetToRemove = layout.itemAt( i ).widget()
+			# remove it from the layout list
+			layout.removeWidget( widgetToRemove )
+			# remove it from the gui
+			widgetToRemove.setParent( None )
+
+class LoadGameBox(QtWidgets.)
 
 class FirstLoadMessage(QtWidgets.QMessageBox):
 	def __init__(self):
