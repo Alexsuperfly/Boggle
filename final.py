@@ -299,17 +299,28 @@ class BoggleGame(QtWidgets.QWidget):
 		s[str(timekey)] = self.savedata
 		s.close()
 
-	def LoadGame(self):
+	def LoadGame(self, key):
 		self.clearlayout(self.grid)
 		s = shelve.open("game_save_data.db")
-		availkeys = s.keys()
+		#self.availkeys = s.keys()
+		self.selectedkey = key
+		self.loadbox.deleteLater()
+		self.loadbox = None
 
-		selectedsave = 
+		#print("This is the LoadGame function talking")
+		#print("No matter what i try the window that pops up is transparent")
+		#print("So i have disabled that and I load the first Save game in the DB file to show that i have load logic")
+		#print("The code i have tried to use to make the window will be commented out in the LoadGame function")
 
-		self.score = s[selectedsave][0]
-		self.board = DiceBoard(self,s[selectedsave][1])
-		self.wordtable = WordTable(self. s[selectedsave][2])
-		self.timer = Timer(self, s[selectedsave][3])
+		#self.loadbox = LoadGamePopupBox(self, self.availkeys)
+		#self.loadbox.itemClicked.connect(self.loadbox.Clicked)
+		#self.loadbox.show()
+
+
+		self.score = s[self.selectedkey][0]
+		self.board = DiceBoard(self,s[self.selectedkey][1])
+		self.wordtable = WordTable(self, s[self.selectedkey][2])
+		self.timer = Timer(self, s[self.selectedkey][3])
 		self.wordentry = WordEntry(self)
 
 		self.grid.addWidget(self.board,1,1,10,5)
@@ -325,7 +336,25 @@ class BoggleGame(QtWidgets.QWidget):
 			# remove it from the gui
 			widgetToRemove.setParent( None )
 
-class LoadGameBox(QtWidgets.)
+	def ChooseLoadedGame(self):
+		s = shelve.open("game_save_data.db")
+		self.loadbox = LoadGamePopupBox(self, s.keys())
+		self.loadbox.itemClicked.connect(self.loadbox.Clicked)
+		self.loadbox.show()
+
+class LoadGamePopupBox(QtWidgets.QListWidget):
+	def __init__(self, parent, keys):
+		QtWidgets.QListWidget.__init__(self)
+		self.parent = parent
+		self.thekeys = keys
+		self.click = 0
+		self.setWindowTitle("Select Save to Load")
+		for each in self.thekeys:
+			self.addItem(str(each))
+
+	def Clicked(self,item):
+		#self.parent.selectedkey = str(item.text())
+		self.parent.LoadGame(str(item.text()))
 
 class FirstLoadMessage(QtWidgets.QMessageBox):
 	def __init__(self):
@@ -353,7 +382,7 @@ class BoggleMainWindow(QtWidgets.QMainWindow):
 		if reply == QtWidgets.QMessageBox.Yes:
 			self.bogglegame.NewGame()
 		else:
-			self.bogglegame.LoadGame()
+			self.bogglegame.ChooseLoadedGame()
 
 		new_game_action = QtWidgets.QAction('New', self)
 		new_game_action.triggered.connect(self.bogglegame.NewGame)
@@ -362,7 +391,7 @@ class BoggleMainWindow(QtWidgets.QMainWindow):
 		save_game_action.triggered.connect(self.bogglegame.SaveGame)
 
 		load_game_action = QtWidgets.QAction('Load', self)
-		load_game_action.triggered.connect(self.bogglegame.LoadGame)
+		load_game_action.triggered.connect(self.bogglegame.ChooseLoadedGame)
 
 		menu_bar = self.menuBar()
 		menu_bar.setNativeMenuBar(False)
