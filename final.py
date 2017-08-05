@@ -12,7 +12,7 @@ import sys
 import shelve
 
 try:
-	import cPickle as cPickle
+	import cPickle as pickle
 except:
 	import pickle
 
@@ -85,13 +85,18 @@ class Die(QtWidgets.QLabel):
 
 
 class DiceBoard(QtWidgets.QWidget):
-	def __init__(self, parent, dice = None):
+	def __init__(self, parent, dice = None, foundwords = None):
 		QtWidgets.QWidget.__init__(self,parent)
 		self.parent = parent
 		self.mydice = []
 		self.grid = QtWidgets.QGridLayout()
 		self.setLayout(self.grid)
 		
+		if foundwords == None:
+			self.alreadyfoundwords = []
+		else:
+			self.alreadyfoundwords = foundwords
+
 		if dice == None:
 			self.mydice = self.generateDice()
 		else:
@@ -208,7 +213,10 @@ class DiceBoard(QtWidgets.QWidget):
 		return 0
 	
 	def check_word(self, word):
+		if word in self.alreadyfoundwords:
+			return
 		if self.scan_board(word):
+			self.alreadyfoundwords.append(word)
 			self.parent.score = self.parent.score + self.find_points(word)
 
 
@@ -241,7 +249,7 @@ class WordEntry(QtWidgets.QLineEdit):
 
 
 class Timer(QtWidgets.QLCDNumber):
-	def __init__(self, parent, starttime = 10):
+	def __init__(self, parent, starttime = 180):
 		QtWidgets.QLCDNumber.__init__(self, parent)
 		self.starttime = starttime
 		self.parent = parent
@@ -291,6 +299,7 @@ class BoggleGame(QtWidgets.QWidget):
 		self.savedata = []
 		self.savedata.append(self.score)
 		self.savedata.append(self.board.mydice)
+		self.savedata.append(self.board.alreadyfoundwords)
 		self.savedata.append(self.wordtable.displayedwords)
 		self.savedata.append(self.timer.currenttime)
 		timeobj = QtCore.QDateTime.currentDateTime()
@@ -302,25 +311,14 @@ class BoggleGame(QtWidgets.QWidget):
 	def LoadGame(self, key):
 		self.clearlayout(self.grid)
 		s = shelve.open("game_save_data.db")
-		#self.availkeys = s.keys()
 		self.selectedkey = key
 		self.loadbox.deleteLater()
 		self.loadbox = None
 
-		#print("This is the LoadGame function talking")
-		#print("No matter what i try the window that pops up is transparent")
-		#print("So i have disabled that and I load the first Save game in the DB file to show that i have load logic")
-		#print("The code i have tried to use to make the window will be commented out in the LoadGame function")
-
-		#self.loadbox = LoadGamePopupBox(self, self.availkeys)
-		#self.loadbox.itemClicked.connect(self.loadbox.Clicked)
-		#self.loadbox.show()
-
-
 		self.score = s[self.selectedkey][0]
-		self.board = DiceBoard(self,s[self.selectedkey][1])
-		self.wordtable = WordTable(self, s[self.selectedkey][2])
-		self.timer = Timer(self, s[self.selectedkey][3])
+		self.board = DiceBoard(self,s[self.selectedkey][1], s[self.selectedkey][2])
+		self.wordtable = WordTable(self, s[self.selectedkey][3])
+		self.timer = Timer(self, s[self.selectedkey][4])
 		self.wordentry = WordEntry(self)
 
 		self.grid.addWidget(self.board,1,1,10,5)
@@ -353,7 +351,6 @@ class LoadGamePopupBox(QtWidgets.QListWidget):
 			self.addItem(str(each))
 
 	def Clicked(self,item):
-		#self.parent.selectedkey = str(item.text())
 		self.parent.LoadGame(str(item.text()))
 
 class FirstLoadMessage(QtWidgets.QMessageBox):
